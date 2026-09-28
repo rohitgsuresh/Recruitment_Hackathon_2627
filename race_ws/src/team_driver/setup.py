@@ -28,6 +28,7 @@ setup(
             # Add more of your own alongside it if you like.
             'driver = team_driver.racing_driver:main',
             'driver_v1 = team_driver.driver:main',
+            'driver_v21 = team_driver.racing_driver:main_racing_line',
         ],
     },
 )
