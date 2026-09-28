@@ -26,8 +26,8 @@ setup(
         'console_scripts': [
             # Keep this entry: the judges run `ros2 run team_driver driver`.
             # Add more of your own alongside it if you like.
-            'driver = team_driver.driver:main',
-            'driver_v2 = team_driver.racing_driver:main',
+            'driver = team_driver.racing_driver:main',
+            'driver_v1 = team_driver.driver:main',
         ],
     },
 )
