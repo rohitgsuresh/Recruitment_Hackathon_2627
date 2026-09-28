@@ -1,40 +1,14 @@
 #!/usr/bin/env python3
-"""YOUR DRIVER GOES HERE.
+"""Fifth Gear - team driver, version 1: a disparity-extender driver.
 
-This is the node the judges run. Keep `driver` as the executable name and
-`/drive` as the output topic and everything else is yours to change - rewrite
-this file completely if you want to.
+A reactive driver: it uses only the latest LiDAR scan to decide what to do.
+It does not need a map or a planned racing line, so it is a good first
+driver. Later versions can follow a precomputed racing line for more speed.
 
---------------------------------------------------------------------------
-THIS TEMPLATE DOES NOT DRIVE
---------------------------------------------------------------------------
-It is wiring, not a driver. It connects to the simulator, subscribes to the
-sensors, and then asks for a slow constant speed with the wheels straight. It
-will set off from the grid and into the first thing in front of it. That is
-deliberate and it is the whole point: **there is no algorithm here and no
-algorithm is shipped anywhere else in this repository.** Writing one is the
-hackathon.
+Method: the "disparity extender" (Nathan Otterness, UNC F1TENTH team, 2019).
+Credit this in SUBMISSION.md.
 
-What the template is good for is proving your setup works. If the car moves
-when you run it, then the image, the bridge, the workspace, the topics and
-your commands are all correct, and every problem left is yours.
-
-    ros2 run team_driver driver
-    ros2 launch team_driver driver.launch.py
-
-`docs/04-algorithms.md` lists the approaches worth starting from - reactive
-ones that need nothing but the LiDAR, planners that follow a line, model-based
-control, and learned policies - with what each needs and where each breaks.
-Pick one and replace `plan()` below.
-
-What you are allowed to read (see docs/06-rules.md):
-    /scan               LiDAR, 819 beams over 270 degrees
-    /ego_racecar/odom   ground-truth pose and velocity - ALLOWED and RECOMMENDED
-    TF, /map            the static map
-What you publish:
-    /drive              AckermannDriveStamped - you ask for a SPEED, and the
-                        simulator closes that loop for you
-    /driver/...         anything of your own, for visualisation
+Keep `driver` as the executable name and `/drive` as the output topic.
 """
 
 import math
@@ -47,46 +21,56 @@ from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
 from visualization_msgs.msg import Marker, MarkerArray
 
+MAX_STEER = 0.4189  # [rad] steering limit of the f1tenth_gym car
+
 
 class Driver(Node):
 
     def __init__(self):
         super().__init__('driver')
 
-        # Declared parameters can be retuned without editing code:
-        #   ros2 run team_driver driver --ros-args -p crawl_speed:=2.0
-        # Add your own as you go; config/driver_params.yaml loads them.
+        # Wiring (unchanged from the template)
         self.declare_parameter('scan_topic', '/scan')
         self.declare_parameter('odom_topic', '/ego_racecar/odom')
         self.declare_parameter('drive_topic', '/drive')
-        self.declare_parameter('crawl_speed', 1.0)        # [m/s]
-        self.declare_parameter('max_range', 8.0)          # [m] clip the scan here
+        self.declare_parameter('max_range', 10.0)          # [m] clip the scan here
 
-        self.crawl_speed = self.get_parameter('crawl_speed').value
-        self.max_range = self.get_parameter('max_range').value
+        # Tuning knobs - these are the numbers to experiment with
+        self.declare_parameter('max_speed', 4.0)           # [m/s] on straights
+        self.declare_parameter('min_speed', 1.5)           # [m/s] in the tightest turns
+        self.declare_parameter('brake_gain', 1.5)          # speed <= brake_gain * distance ahead
+        self.declare_parameter('fov_deg', 100.0)           # only look +/- this far to the sides
+        self.declare_parameter('disparity_threshold', 0.3) # [m] jump that counts as an edge
+        self.declare_parameter('extend_width', 0.30)       # [m] half car width (0.155) + margin
+        self.declare_parameter('side_clearance', 0.25)     # [m] don't turn into things this close
+        self.declare_parameter('steer_gain', 1.0)          # scale on the steering angle
 
-        # Latest known pose and speed. Ground truth from the simulator, which
-        # the rules allow you to use - so use it.
-        self.position = None      # (x, y) in the map frame
-        self.yaw = 0.0            # [rad]
-        self.speed = 0.0          # [m/s]
+        p = lambda name: self.get_parameter(name).value
+        self.max_range = p('max_range')
+        self.max_speed = p('max_speed')
+        self.min_speed = p('min_speed')
+        self.brake_gain = p('brake_gain')
+        self.fov = math.radians(p('fov_deg'))
+        self.disparity_threshold = p('disparity_threshold')
+        self.extend_width = p('extend_width')
+        self.side_clearance = p('side_clearance')
+        self.steer_gain = p('steer_gain')
+
+        # Ground-truth pose from the simulator (not used by v1 yet)
+        self.position = None
+        self.yaw = 0.0
+        self.speed = 0.0
 
         self.drive_pub = self.create_publisher(
-            AckermannDriveStamped, self.get_parameter('drive_topic').value, 10)
+            AckermannDriveStamped, p('drive_topic'), 10)
         self.marker_pub = self.create_publisher(MarkerArray, '/driver/markers', 1)
 
-        self.create_subscription(
-            LaserScan, self.get_parameter('scan_topic').value, self.scan_callback, 10)
-        self.create_subscription(
-            Odometry, self.get_parameter('odom_topic').value, self.odom_callback, 10)
+        self.create_subscription(LaserScan, p('scan_topic'), self.scan_callback, 1)
+        self.create_subscription(Odometry, p('odom_topic'), self.odom_callback, 10)
 
         self._marker_divisor = 0
-        self.get_logger().warn(
-            'team_driver is up, but this template has no driving logic: it will '
-            'crawl straight ahead until it hits something. Implement plan().')
+        self.get_logger().info('Fifth Gear driver v1 (disparity extender) is up.')
 
-    # ------------------------------------------------------------------
-    # Odometry: where the car is. Free, accurate, and worth building on.
     # ------------------------------------------------------------------
     def odom_callback(self, msg):
         self.position = (msg.pose.pose.position.x, msg.pose.pose.position.y)
@@ -95,9 +79,6 @@ class Driver(Node):
                               1.0 - 2.0 * (q.y * q.y + q.z * q.z))
         self.speed = math.hypot(msg.twist.twist.linear.x, msg.twist.twist.linear.y)
 
-    # ------------------------------------------------------------------
-    # The control loop, once per LiDAR scan (about 40 Hz).
-    # ------------------------------------------------------------------
     def scan_callback(self, scan):
         ranges, angles = self.preprocess(scan)
         steering, speed = self.plan(ranges, angles)
@@ -108,46 +89,67 @@ class Driver(Node):
             self.publish_marker(steering)
 
     def preprocess(self, scan):
-        """Turn a raw scan into clean ranges plus the angle of each beam.
-
-        Kept because every approach needs some version of it and the details
-        are fiddly rather than interesting: the LiDAR reports NaN and inf, and
-        arithmetic on those propagates silently through everything downstream.
-        """
         ranges = np.asarray(scan.ranges, dtype=np.float64)
         ranges = np.nan_to_num(ranges, nan=0.0, posinf=self.max_range, neginf=0.0)
         ranges = np.clip(ranges, 0.0, self.max_range)
-
         angles = scan.angle_min + np.arange(len(ranges)) * scan.angle_increment
         return ranges, angles
 
     # ==================================================================
-    # THIS IS THE PART YOU WRITE.
+    # The driving logic
     # ==================================================================
     def plan(self, ranges, angles):
-        """Decide what the car should do, given the latest scan.
+        # 1. Only look ahead. Angle 0 is straight ahead, positive is left.
+        ahead = np.abs(angles) <= self.fov
+        r = ranges[ahead]
+        a = angles[ahead]
+        increment = a[1] - a[0]
 
-        Returns `(steering, speed)`: a steering angle in radians, and a speed
-        in m/s. Unlike Track 2, the speed is a genuine request - the simulator
-        runs the controller that achieves it - so you can think in the units
-        your algorithm naturally produces.
+        # 2. Disparity extension: at every sudden jump from near to far, the
+        #    near obstacle is "widened" over the far side by extend_width.
+        #    The car then never aims at a gap narrower than about
+        #    2 * extend_width, which also seals the gaps between cones.
+        extended = r.copy()
+        jumps = np.nonzero(np.abs(np.diff(r)) > self.disparity_threshold)[0]
+        for i in jumps:
+            if r[i] < r[i + 1]:
+                near = r[i]              # near beam at i, far side is i+1 upward
+            else:
+                near = r[i + 1]          # near beam at i+1, far side is i downward
+            if near < 0.01:
+                continue                 # invalid reading, skip it
+            n = int(math.ceil(math.atan2(self.extend_width, near) / increment))
+            if r[i] < r[i + 1]:
+                span = slice(i + 1, min(i + 1 + n, len(extended)))
+            else:
+                span = slice(max(i - n + 1, 0), i + 1)
+            extended[span] = np.minimum(extended[span], near)
 
-        Right now it returns "straight ahead, slowly", which is not driving:
-        it ignores `ranges` entirely, so the car will hold its heading off the
-        grid and put itself into the first wall it meets. Replace the whole
-        method.
+        # 3. Aim at the farthest open point. If several are about equally far,
+        #    prefer the one closest to straight ahead (smoother driving).
+        candidates = np.nonzero(extended >= extended.max() - 0.1)[0]
+        target = candidates[np.argmin(np.abs(a[candidates]))]
+        steering = float(np.clip(a[target] * self.steer_gain, -MAX_STEER, MAX_STEER))
 
-        You have more to work with than the scan. `self.position`, `self.yaw`
-        and `self.speed` are ground truth from /ego_racecar/odom and are yours
-        to use, the occupancy grid is published on /map, and nothing stops you
-        subscribing to more topics, loading a line you computed offline, or
-        running a policy you trained. See docs/04-algorithms.md for the
-        approaches and what each one needs.
-        """
-        return 0.0, self.crawl_speed
+        # 4. Don't cut corners: if something is right beside the car on the
+        #    side we want to turn towards, go straight until it is clear.
+        left_side = (angles > math.radians(60)) & (angles < math.radians(110))
+        right_side = (angles < -math.radians(60)) & (angles > -math.radians(110))
+        if steering > 0 and np.min(ranges[left_side]) < self.side_clearance:
+            steering = 0.0
+        if steering < 0 and np.min(ranges[right_side]) < self.side_clearance:
+            steering = 0.0
 
-    # ------------------------------------------------------------------
-    # Output
+        # 5. Speed: fast when straight, slow in turns, and never faster than
+        #    the distance to whatever is directly ahead allows.
+        straightness = 1.0 - abs(steering) / MAX_STEER
+        speed = self.min_speed + (self.max_speed - self.min_speed) * straightness
+        front = np.min(ranges[np.abs(angles) < math.radians(5)])
+        speed = min(speed, self.brake_gain * front)
+        speed = max(speed, 0.5)          # never stop completely (15 s stuck = DNF)
+
+        return steering, speed
+
     # ------------------------------------------------------------------
     def publish(self, steering, speed):
         msg = AckermannDriveStamped()
@@ -157,7 +159,6 @@ class Driver(Node):
         self.drive_pub.publish(msg)
 
     def publish_marker(self, target_angle):
-        """Draw where the car thinks it is going. Add /driver/markers in RViz."""
         marker = Marker()
         marker.header.frame_id = 'ego_racecar/base_link'
         marker.header.stamp = self.get_clock().now().to_msg()
