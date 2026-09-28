@@ -37,7 +37,7 @@ class Driver(Node):
 
         # Tuning knobs - these are the numbers to experiment with
         self.declare_parameter('max_speed', 7.0)           # [m/s] on straights
-        self.declare_parameter('min_speed', 2.5)           # [m/s] in the tightest turns
+        self.declare_parameter('min_speed', 3.5)           # [m/s] in the tightest turns
         self.declare_parameter('brake_gain', 1.5)          # speed <= brake_gain * distance ahead
         self.declare_parameter('fov_deg', 100.0)           # only look +/- this far to the sides
         self.declare_parameter('disparity_threshold', 0.3) # [m] jump that counts as an edge
