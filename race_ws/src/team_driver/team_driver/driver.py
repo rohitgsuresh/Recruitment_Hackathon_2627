@@ -36,7 +36,7 @@ class Driver(Node):
         self.declare_parameter('max_range', 10.0)          # [m] clip the scan here
 
         # Tuning knobs - these are the numbers to experiment with
-        self.declare_parameter('max_speed', 4.0)           # [m/s] on straights
+        self.declare_parameter('max_speed', 5.0)           # [m/s] on straights
         self.declare_parameter('min_speed', 1.5)           # [m/s] in the tightest turns
         self.declare_parameter('brake_gain', 1.5)          # speed <= brake_gain * distance ahead
         self.declare_parameter('fov_deg', 100.0)           # only look +/- this far to the sides
