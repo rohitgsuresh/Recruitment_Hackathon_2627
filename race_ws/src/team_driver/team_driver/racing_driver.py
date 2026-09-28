@@ -333,7 +333,7 @@ class RacingDriver(Node):
         decl('lookahead_floor', 0.3)       # [m] shortest lookahead ever used
 
         # Safety
-        decl('emergency_gain', 2.5)        # speed <= gain * distance ahead
+        decl('emergency_gain', 3.0)        # speed <= gain * distance ahead
         decl('side_clearance', 0.0)        # [m] don't steer towards things this close; 0 = off
         decl('r_tight', 0.0)               # [m] corners tighter than this get v_tight; 0 = off
         decl('v_tight', 0.0)               # [m/s] speed cap in those corners
