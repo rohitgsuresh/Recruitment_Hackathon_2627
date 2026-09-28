@@ -119,10 +119,10 @@ class RacingDriver(Node):
         self.declare_parameter('curvature_offset', 3)     # neighbours used for curvature
 
         # Speed profile - the main tuning knobs
-        self.declare_parameter('v_max', 8.0)              # [m/s] top speed
+        self.declare_parameter('v_max', 10.0)              # [m/s] top speed
         self.declare_parameter('a_lat', 21.0)              # [m/s^2] cornering grip
-        self.declare_parameter('a_acc', 5.0)              # [m/s^2] acceleration
-        self.declare_parameter('a_brake', 5.0)            # [m/s^2] braking
+        self.declare_parameter('a_acc', 8.0)              # [m/s^2] acceleration
+        self.declare_parameter('a_brake', 8.0)            # [m/s^2] braking
         self.declare_parameter('speed_scale', 1.0)        # multiply every planned speed
         self.declare_parameter('speed_preview', 2)        # use the speed this many points ahead
 
