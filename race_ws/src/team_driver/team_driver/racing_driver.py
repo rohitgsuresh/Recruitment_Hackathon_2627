@@ -321,7 +321,7 @@ class RacingDriver(Node):
         decl('a_acc', 8.0)                 # [m/s^2] acceleration
         decl('a_brake', 8.0)               # [m/s^2] braking
         decl('speed_scale', 1.0)           # multiply every planned speed
-        decl('speed_preview', 2)           # use the speed this many points ahead
+        decl('speed_preview', 0)           # use the speed this many points ahead
 
         # Pure pursuit
         decl('lookahead_base', 0.6)        # [m]
