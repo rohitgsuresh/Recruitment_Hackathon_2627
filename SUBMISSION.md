@@ -1,4 +1,4 @@
-# Team Fifth Gear
+# The Fifth Gear
 
 ## Members
 
