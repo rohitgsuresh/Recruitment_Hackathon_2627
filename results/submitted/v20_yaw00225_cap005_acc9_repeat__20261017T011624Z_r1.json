@@ -1,15 +1,15 @@
 {
   "schema_version": 2,
   "referee_version": "1.0.0",
-  "team": "fifth_gear",
-  "run_id": "20260928T141724Z_r3",
+  "team": "v20_yaw00225_cap005_acc9_repeat",
+  "run_id": "20261017T011624Z_r1",
   "track": "icra26",
   "map_path": "/hackathon/maps/icra26",
-  "finished_at_utc": "2026-09-28T14:25:03+00:00",
+  "finished_at_utc": "2026-10-17T01:21:14+00:00",
   "environment": {
-    "real_time_factor": 0.739,
-    "wall_duration_s": 239.35,
-    "sim_duration_s": 176.9,
+    "real_time_factor": 0.501,
+    "wall_duration_s": 281.28,
+    "sim_duration_s": 140.88,
     "callback_errors": 0
   },
   "status": "COMPLETE",
@@ -28,84 +28,84 @@
   },
   "laps_completed": 10,
   "laps_required": 10,
-  "collisions": 1,
+  "collisions": 0,
   "collision_limit": 10,
-  "best_lap_time": 13.6399,
-  "best_lap_time_raw": 13.6399,
-  "best_lap_number": 1,
-  "total_time": 137.0927,
-  "total_time_raw": 137.0927,
+  "best_lap_time": 12.6796,
+  "best_lap_time_raw": 12.6796,
+  "best_lap_number": 9,
+  "total_time": 127.0648,
+  "total_time_raw": 127.0648,
   "total_penalty_s": 0.0,
   "laps": [
     {
       "number": 1,
-      "raw_time": 13.6399,
+      "raw_time": 12.7067,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.6399
+      "net_time": 12.7067
     },
     {
       "number": 2,
-      "raw_time": 13.7465,
+      "raw_time": 12.6806,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7465
+      "net_time": 12.6806
     },
     {
       "number": 3,
-      "raw_time": 13.7124,
+      "raw_time": 12.7163,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7124
+      "net_time": 12.7163
     },
     {
       "number": 4,
-      "raw_time": 13.7339,
+      "raw_time": 12.7165,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7339
+      "net_time": 12.7165
     },
     {
       "number": 5,
-      "raw_time": 13.6762,
+      "raw_time": 12.7248,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.6762
+      "net_time": 12.7248
     },
     {
       "number": 6,
-      "raw_time": 13.7312,
+      "raw_time": 12.6809,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7312
+      "net_time": 12.6809
     },
     {
       "number": 7,
-      "raw_time": 13.7218,
+      "raw_time": 12.7044,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7218
+      "net_time": 12.7044
     },
     {
       "number": 8,
-      "raw_time": 13.7278,
+      "raw_time": 12.7245,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7278
+      "net_time": 12.7245
     },
     {
       "number": 9,
-      "raw_time": 13.7091,
+      "raw_time": 12.6796,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.7091
+      "net_time": 12.6796
     },
     {
       "number": 10,
-      "raw_time": 13.6938,
+      "raw_time": 12.7304,
       "collisions": 0,
       "penalty_s": 0.0,
-      "net_time": 13.6938
+      "net_time": 12.7304
     }
   ]
 }

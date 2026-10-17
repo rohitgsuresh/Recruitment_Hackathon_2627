@@ -318,7 +318,7 @@ class RacingDriver(Node):
         # Speed profile - the main tuning knobs (v2.0 tuned values)
         decl('v_max', 10.0)                # [m/s] top speed
         decl('a_lat', 21.0)                # [m/s^2] cornering (see SUBMISSION.md)
-        decl('a_acc', 8.0)                 # [m/s^2] acceleration
+        decl('a_acc', 9.0)                 # [m/s^2] acceleration
         decl('a_brake', 8.0)               # [m/s^2] braking
         decl('speed_scale', 1.0)           # multiply every planned speed
         decl('speed_preview', 0)           # use the speed this many points ahead
@@ -379,6 +379,7 @@ class RacingDriver(Node):
 
         self.position = None
         self.yaw = 0.0
+        self.yaw_rate = 0.0
         self.speed = 0.0
         self.idx = None              # index of the nearest path point
         self.direction_checked = False
@@ -446,6 +447,7 @@ class RacingDriver(Node):
         self.yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
                               1.0 - 2.0 * (q.y * q.y + q.z * q.z))
         self.speed = math.hypot(msg.twist.twist.linear.x, msg.twist.twist.linear.y)
+        self.yaw_rate = float(msg.twist.twist.angular.z)
 
         if not self.direction_checked:
             # The path may run clockwise or anticlockwise. Make sure it runs
@@ -508,6 +510,12 @@ class RacingDriver(Node):
         dist2 = max(local_x ** 2 + local_y ** 2, 1e-6)
         arc_curvature = 2.0 * local_y / dist2          # the arc through the target
         steering = math.atan(WHEELBASE * arc_curvature) * self.steer_gain
+        # Bounded feedback on measured versus requested yaw rate.
+        if self.speed > 2.0 and math.isfinite(self.yaw_rate):
+            desired_yaw_rate = self.speed * math.tan(steering) / WHEELBASE
+            correction = float(np.clip(
+                0.0225 * (desired_yaw_rate - self.yaw_rate), -0.05, 0.05))
+            steering += correction
         steering = float(np.clip(steering, -MAX_STEER, MAX_STEER))
 
         ranges = np.nan_to_num(np.asarray(scan.ranges), nan=10.0, posinf=10.0)
