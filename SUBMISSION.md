@@ -220,3 +220,12 @@ calculations were not treated as substitutes for simulation testing.
 - The experimental racing-line planner does not reliably satisfy its requested
   clearance everywhere, and its controller settings have not achieved the
   selected centreline version's performance or reliability.
+
+### Clean-clone verification
+A fresh recursive clone of commit 8c83f13 built successfully with
+`setup.sh --no-cache`. The first evaluation aborted before driving because
+the referee received no odometry within its 60-second startup limit.
+An immediate retry, without code or configuration changes, completed
+10/10 laps with zero collisions: best lap 12.674 s, total 126.987 s,
+real-time factor 0.44x. The cause of the initial startup delay was not
+confirmed.
